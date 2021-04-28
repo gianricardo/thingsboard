@@ -20,11 +20,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.server.common.data.device.data.DeviceData;
-import org.thingsboard.server.common.data.device.profile.DeviceProfileData;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.id.DeviceProfileId;
+import org.thingsboard.server.common.data.id.FirmwareId;
 import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.common.data.validation.NoXss;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,13 +38,18 @@ public class Device extends SearchTextBasedWithAdditionalInfo<DeviceId> implemen
 
     private TenantId tenantId;
     private CustomerId customerId;
+    @NoXss
     private String name;
+    @NoXss
     private String type;
+    @NoXss
     private String label;
     private DeviceProfileId deviceProfileId;
     private transient DeviceData deviceData;
     @JsonIgnore
     private byte[] deviceDataBytes;
+
+    private FirmwareId firmwareId;
 
     public Device() {
         super();
@@ -62,6 +68,18 @@ public class Device extends SearchTextBasedWithAdditionalInfo<DeviceId> implemen
         this.label = device.getLabel();
         this.deviceProfileId = device.getDeviceProfileId();
         this.setDeviceData(device.getDeviceData());
+        this.firmwareId = device.getFirmwareId();
+    }
+
+    public Device updateDevice(Device device) {
+        this.tenantId = device.getTenantId();
+        this.customerId = device.getCustomerId();
+        this.name = device.getName();
+        this.type = device.getType();
+        this.label = device.getLabel();
+        this.deviceProfileId = device.getDeviceProfileId();
+        this.setDeviceData(device.getDeviceData());
+        return this;
     }
 
     public TenantId getTenantId() {
@@ -145,6 +163,14 @@ public class Device extends SearchTextBasedWithAdditionalInfo<DeviceId> implemen
         return getName();
     }
 
+    public FirmwareId getFirmwareId() {
+        return firmwareId;
+    }
+
+    public void setFirmwareId(FirmwareId firmwareId) {
+        this.firmwareId = firmwareId;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -161,6 +187,8 @@ public class Device extends SearchTextBasedWithAdditionalInfo<DeviceId> implemen
         builder.append(", deviceProfileId=");
         builder.append(deviceProfileId);
         builder.append(", deviceData=");
+        builder.append(firmwareId);
+        builder.append(", firmwareId=");
         builder.append(deviceData);
         builder.append(", additionalInfo=");
         builder.append(getAdditionalInfo());

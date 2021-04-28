@@ -24,7 +24,13 @@ import org.thingsboard.server.gen.transport.TransportProtos.ClaimDeviceMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.GetAttributeRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.GetEntityProfileRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.GetEntityProfileResponseMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.GetFirmwareRequestMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.GetFirmwareResponseMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.GetOrCreateDeviceFromGatewayRequestMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.GetResourceRequestMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.GetResourceResponseMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.LwM2MRequestMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.LwM2MResponseMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.PostAttributeMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.PostTelemetryMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ProvisionDeviceRequestMsg;
@@ -37,6 +43,8 @@ import org.thingsboard.server.gen.transport.TransportProtos.SubscriptionInfoProt
 import org.thingsboard.server.gen.transport.TransportProtos.ToDeviceRpcResponseMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ToServerRpcRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateBasicMqttCredRequestMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceCredentialsResponseMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceLwM2MCredentialsRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceTokenRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceX509CertRequestMsg;
 
@@ -47,6 +55,8 @@ public interface TransportService {
 
     GetEntityProfileResponseMsg getEntityProfile(GetEntityProfileRequestMsg msg);
 
+    GetResourceResponseMsg getResource(GetResourceRequestMsg msg);
+
     void process(DeviceTransportType transportType, ValidateDeviceTokenRequestMsg msg,
                  TransportServiceCallback<ValidateDeviceCredentialsResponse> callback);
 
@@ -56,11 +66,19 @@ public interface TransportService {
     void process(DeviceTransportType transportType, ValidateDeviceX509CertRequestMsg msg,
                  TransportServiceCallback<ValidateDeviceCredentialsResponse> callback);
 
+    void process(ValidateDeviceLwM2MCredentialsRequestMsg msg,
+                 TransportServiceCallback<ValidateDeviceCredentialsResponseMsg> callback);
+
     void process(GetOrCreateDeviceFromGatewayRequestMsg msg,
                  TransportServiceCallback<GetOrCreateDeviceFromGatewayResponse> callback);
 
     void process(ProvisionDeviceRequestMsg msg,
                  TransportServiceCallback<ProvisionDeviceResponseMsg> callback);
+
+    void onProfileUpdate(DeviceProfile deviceProfile);
+
+    void process(LwM2MRequestMsg msg,
+                 TransportServiceCallback<LwM2MResponseMsg> callback);
 
     void process(SessionInfoProto sessionInfo, SessionEventMsg msg, TransportServiceCallback<Void> callback);
 
@@ -82,11 +100,13 @@ public interface TransportService {
 
     void process(SessionInfoProto sessionInfo, ClaimDeviceMsg msg, TransportServiceCallback<Void> callback);
 
+    void process(SessionInfoProto sessionInfoProto, GetFirmwareRequestMsg msg, TransportServiceCallback<GetFirmwareResponseMsg> callback);
+
     SessionMetaData registerAsyncSession(SessionInfoProto sessionInfo, SessionMsgListener listener);
 
     SessionMetaData registerSyncSession(SessionInfoProto sessionInfo, SessionMsgListener listener, long timeout);
 
-    void reportActivity(SessionInfoProto sessionInfo);
+    SessionMetaData reportActivity(SessionInfoProto sessionInfo);
 
     void deregisterSession(SessionInfoProto sessionInfo);
 }

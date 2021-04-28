@@ -24,9 +24,11 @@ import org.thingsboard.server.common.data.device.DeviceSearchQuery;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.id.DeviceProfileId;
+import org.thingsboard.server.common.data.id.EdgeId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
+import org.thingsboard.server.common.data.security.DeviceCredentials;
 import org.thingsboard.server.dao.device.provision.ProvisionRequest;
 
 import java.util.List;
@@ -45,6 +47,8 @@ public interface DeviceService {
 
     Device saveDeviceWithAccessToken(Device device, String accessToken);
 
+    Device saveDeviceWithCredentials(Device device, DeviceCredentials deviceCredentials);
+
     Device assignDeviceToCustomer(TenantId tenantId, DeviceId deviceId, CustomerId customerId);
 
     Device unassignDeviceFromCustomer(TenantId tenantId, DeviceId deviceId);
@@ -56,6 +60,8 @@ public interface DeviceService {
     PageData<DeviceInfo> findDeviceInfosByTenantId(TenantId tenantId, PageLink pageLink);
 
     PageData<Device> findDevicesByTenantIdAndType(TenantId tenantId, String type, PageLink pageLink);
+
+    PageData<Device> findDevicesByTenantIdAndTypeAndEmptyFirmware(TenantId tenantId, String type, PageLink pageLink);
 
     PageData<DeviceInfo> findDeviceInfosByTenantIdAndType(TenantId tenantId, String type, PageLink pageLink);
 
@@ -87,4 +93,13 @@ public interface DeviceService {
 
     Device saveDevice(ProvisionRequest provisionRequest, DeviceProfile profile);
 
+    Device assignDeviceToEdge(TenantId tenantId, DeviceId deviceId, EdgeId edgeId);
+
+    Device unassignDeviceFromEdge(TenantId tenantId, DeviceId deviceId, EdgeId edgeId);
+
+    PageData<Device> findDevicesByTenantIdAndEdgeId(TenantId tenantId, EdgeId edgeId, PageLink pageLink);
+
+    PageData<Device> findDevicesByTenantIdAndEdgeIdAndType(TenantId tenantId, EdgeId edgeId, String type, PageLink pageLink);
+
+    long countByTenantId(TenantId tenantId);
 }

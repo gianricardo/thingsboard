@@ -22,6 +22,7 @@ import org.thingsboard.server.common.data.EntitySubtype;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
+import org.thingsboard.server.common.data.page.TimePageLink;
 import org.thingsboard.server.dao.Dao;
 import org.thingsboard.server.dao.TenantEntityDao;
 
@@ -79,6 +80,8 @@ public interface DeviceDao extends Dao<Device>, TenantEntityDao {
      * @return the list of device objects
      */
     PageData<Device> findDevicesByTenantIdAndType(UUID tenantId, String type, PageLink pageLink);
+
+    PageData<Device> findDevicesByTenantIdAndTypeAndEmptyFirmware(UUID tenantId, String type, PageLink pageLink);
 
     /**
      * Find device infos by tenantId, type and page link.
@@ -215,4 +218,26 @@ public interface DeviceDao extends Dao<Device>, TenantEntityDao {
      * @return the list of device objects
      */
     PageData<Device> findDevicesByTenantIdAndProfileId(UUID tenantId, UUID profileId, PageLink pageLink);
+
+
+    /**
+     * Find devices by tenantId, edgeId and page link.
+     *
+     * @param tenantId the tenantId
+     * @param edgeId the edgeId
+     * @param pageLink the page link
+     * @return the list of device objects
+     */
+    PageData<Device> findDevicesByTenantIdAndEdgeId(UUID tenantId, UUID edgeId, PageLink pageLink);
+
+    /**
+     * Find devices by tenantId, edgeId, type and page link.
+     *
+     * @param tenantId the tenantId
+     * @param edgeId the edgeId
+     * @param type the type
+     * @param pageLink the page link
+     * @return the list of device objects
+     */
+    PageData<Device> findDevicesByTenantIdAndEdgeIdAndType(UUID tenantId, UUID edgeId, String type, PageLink pageLink);
 }
