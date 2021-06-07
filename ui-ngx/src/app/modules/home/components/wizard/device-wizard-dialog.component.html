@@ -48,10 +48,6 @@
               <mat-label translate>device.label</mat-label>
               <input matInput formControlName="label">
             </mat-form-field>
-            <tb-firmware-autocomplete
-              [useFullEntityId]="true"
-              formControlName="firmwareId">
-            </tb-firmware-autocomplete>
             <mat-form-field class="mat-block" style="padding-bottom: 14px;">
               <mat-label translate>device-profile.transport-type</mat-label>
               <mat-select formControlName="transportType" required>
@@ -159,7 +155,7 @@
       <mat-step [stepControl]="credentialsFormGroup" [optional]="true">
         <ng-template matStepLabel>{{ 'device.credentials' | translate }}</ng-template>
         <form [formGroup]="credentialsFormGroup" style="padding-bottom: 16px;">
-          <mat-checkbox style="padding-bottom: 16px;" formControlName="setCredential">{{ 'device.wizard.add-credential' | translate }}</mat-checkbox>
+          <mat-checkbox style="padding-bottom: 16px;" formControlName="setCredential">{{ 'device.wizard.add-credentials' | translate }}</mat-checkbox>
           <tb-device-credentials
             [fxShow]="credentialsFormGroup.get('setCredential').value"
             formControlName="credential">

@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.thingsboard.server.common.data.DeviceTransportType;
+import org.thingsboard.server.common.data.ota.OtaPackageType;
+import org.thingsboard.server.common.data.TbTransportService;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.transport.SessionMsgListener;
 import org.thingsboard.server.common.transport.TransportContext;
@@ -70,7 +72,7 @@ import java.util.function.Consumer;
 @ConditionalOnExpression("'${service.type:null}'=='tb-transport' || ('${service.type:null}'=='monolith' && '${transport.api_enabled:true}'=='true' && '${transport.http.enabled}'=='true')")
 @RequestMapping("/api/v1")
 @Slf4j
-public class DeviceApiController {
+public class DeviceApiController implements TbTransportService {
 
     @Autowired
     private HttpTransportContext transportContext;
@@ -209,19 +211,18 @@ public class DeviceApiController {
     public DeferredResult<ResponseEntity> getFirmware(@PathVariable("deviceToken") String deviceToken,
                                                       @RequestParam(value = "title") String title,
                                                       @RequestParam(value = "version") String version,
-                                                      @RequestParam(value = "chunkSize", required = false, defaultValue = "0") int chunkSize,
+                                                      @RequestParam(value = "size", required = false, defaultValue = "0") int size,
                                                       @RequestParam(value = "chunk", required = false, defaultValue = "0") int chunk) {
-        DeferredResult<ResponseEntity> responseWriter = new DeferredResult<>();
-        transportContext.getTransportService().process(DeviceTransportType.DEFAULT, ValidateDeviceTokenRequestMsg.newBuilder().setToken(deviceToken).build(),
-                new DeviceAuthCallback(transportContext, responseWriter, sessionInfo -> {
-                    TransportProtos.GetFirmwareRequestMsg requestMsg = TransportProtos.GetFirmwareRequestMsg.newBuilder()
-                            .setTenantIdMSB(sessionInfo.getTenantIdMSB())
-                            .setTenantIdLSB(sessionInfo.getTenantIdLSB())
-                            .setDeviceIdMSB(sessionInfo.getDeviceIdMSB())
-                            .setDeviceIdLSB(sessionInfo.getDeviceIdLSB()).build();
-                    transportContext.getTransportService().process(sessionInfo, requestMsg, new GetFirmwareCallback(responseWriter, title, version, chunkSize, chunk));
-                }));
-        return responseWriter;
+        return getOtaPackageCallback(deviceToken, title, version, size, chunk, OtaPackageType.FIRMWARE);
+    }
+
+    @RequestMapping(value = "/{deviceToken}/software", method = RequestMethod.GET)
+    public DeferredResult<ResponseEntity> getSoftware(@PathVariable("deviceToken") String deviceToken,
+                                                      @RequestParam(value = "title") String title,
+                                                      @RequestParam(value = "version") String version,
+                                                      @RequestParam(value = "size", required = false, defaultValue = "0") int size,
+                                                      @RequestParam(value = "chunk", required = false, defaultValue = "0") int chunk) {
+        return getOtaPackageCallback(deviceToken, title, version, size, chunk, OtaPackageType.SOFTWARE);
     }
 
     @RequestMapping(value = "/provision", method = RequestMethod.POST)
@@ -229,6 +230,21 @@ public class DeviceApiController {
         DeferredResult<ResponseEntity> responseWriter = new DeferredResult<>();
         transportContext.getTransportService().process(JsonConverter.convertToProvisionRequestMsg(json),
                 new DeviceProvisionCallback(responseWriter));
+        return responseWriter;
+    }
+
+    private DeferredResult<ResponseEntity> getOtaPackageCallback(String deviceToken, String title, String version, int size, int chunk, OtaPackageType firmwareType) {
+        DeferredResult<ResponseEntity> responseWriter = new DeferredResult<>();
+        transportContext.getTransportService().process(DeviceTransportType.DEFAULT, ValidateDeviceTokenRequestMsg.newBuilder().setToken(deviceToken).build(),
+                new DeviceAuthCallback(transportContext, responseWriter, sessionInfo -> {
+                    TransportProtos.GetOtaPackageRequestMsg requestMsg = TransportProtos.GetOtaPackageRequestMsg.newBuilder()
+                            .setTenantIdMSB(sessionInfo.getTenantIdMSB())
+                            .setTenantIdLSB(sessionInfo.getTenantIdLSB())
+                            .setDeviceIdMSB(sessionInfo.getDeviceIdMSB())
+                            .setDeviceIdLSB(sessionInfo.getDeviceIdLSB())
+                            .setType(firmwareType.name()).build();
+                    transportContext.getTransportService().process(sessionInfo, requestMsg, new GetOtaPackageCallback(responseWriter, title, version, size, chunk));
+                }));
         return responseWriter;
     }
 
@@ -278,14 +294,14 @@ public class DeviceApiController {
         }
     }
 
-    private class GetFirmwareCallback implements TransportServiceCallback<TransportProtos.GetFirmwareResponseMsg> {
+    private class GetOtaPackageCallback implements TransportServiceCallback<TransportProtos.GetOtaPackageResponseMsg> {
         private final DeferredResult<ResponseEntity> responseWriter;
         private final String title;
         private final String version;
         private final int chuckSize;
         private final int chuck;
 
-        GetFirmwareCallback(DeferredResult<ResponseEntity> responseWriter, String title, String version, int chuckSize, int chuck) {
+        GetOtaPackageCallback(DeferredResult<ResponseEntity> responseWriter, String title, String version, int chuckSize, int chuck) {
             this.responseWriter = responseWriter;
             this.title = title;
             this.version = version;
@@ -294,17 +310,17 @@ public class DeviceApiController {
         }
 
         @Override
-        public void onSuccess(TransportProtos.GetFirmwareResponseMsg firmwareResponseMsg) {
-            if (!TransportProtos.ResponseStatus.SUCCESS.equals(firmwareResponseMsg.getResponseStatus())) {
+        public void onSuccess(TransportProtos.GetOtaPackageResponseMsg otaPackageResponseMsg) {
+            if (!TransportProtos.ResponseStatus.SUCCESS.equals(otaPackageResponseMsg.getResponseStatus())) {
                 responseWriter.setResult(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-            } else if (title.equals(firmwareResponseMsg.getTitle()) && version.equals(firmwareResponseMsg.getVersion())) {
-                String firmwareId = new UUID(firmwareResponseMsg.getFirmwareIdMSB(), firmwareResponseMsg.getFirmwareIdLSB()).toString();
-                ByteArrayResource resource = new ByteArrayResource(transportContext.getFirmwareDataCache().get(firmwareId, chuckSize, chuck));
+            } else if (title.equals(otaPackageResponseMsg.getTitle()) && version.equals(otaPackageResponseMsg.getVersion())) {
+                String otaPackageId = new UUID(otaPackageResponseMsg.getOtaPackageIdMSB(), otaPackageResponseMsg.getOtaPackageIdLSB()).toString();
+                ByteArrayResource resource = new ByteArrayResource(transportContext.getOtaPackageDataCache().get(otaPackageId, chuckSize, chuck));
                 ResponseEntity<ByteArrayResource> response = ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + firmwareResponseMsg.getFileName())
-                        .header("x-filename", firmwareResponseMsg.getFileName())
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + otaPackageResponseMsg.getFileName())
+                        .header("x-filename", otaPackageResponseMsg.getFileName())
                         .contentLength(resource.contentLength())
-                        .contentType(parseMediaType(firmwareResponseMsg.getContentType()))
+                        .contentType(parseMediaType(otaPackageResponseMsg.getContentType()))
                         .body(resource);
                 responseWriter.setResult(response);
             } else {
@@ -375,7 +391,8 @@ public class DeviceApiController {
         }
 
         @Override
-        public void onRemoteSessionCloseCommand(SessionCloseNotificationProto sessionCloseNotification) {
+        public void onRemoteSessionCloseCommand(UUID sessionId, SessionCloseNotificationProto sessionCloseNotification) {
+            log.trace("[{}] Received the remote command to close the session: {}", sessionId, sessionCloseNotification.getMessage());
             responseWriter.setResult(new ResponseEntity<>(HttpStatus.REQUEST_TIMEOUT));
         }
 
@@ -405,6 +422,11 @@ public class DeviceApiController {
         } catch (Exception e) {
             return MediaType.APPLICATION_OCTET_STREAM;
         }
+    }
+
+    @Override
+    public String getName() {
+        return "HTTP";
     }
 
 }
